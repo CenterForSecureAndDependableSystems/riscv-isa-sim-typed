@@ -1,6 +1,7 @@
 // See LICENSE for license details.
 
 #include "decode_macros.h"
+#include "decode_macros_tt.h"
 #include "arith.h"
 #include "mmu.h"
 #include "softfloat.h"
