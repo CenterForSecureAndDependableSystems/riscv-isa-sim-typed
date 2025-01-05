@@ -2,6 +2,7 @@
 #ifndef _RISCV_PROCESSOR_H
 #define _RISCV_PROCESSOR_H
 
+#include "config.h"
 #include "decode.h"
 #include "trap.h"
 #include "abstract_device.h"
@@ -76,6 +77,11 @@ struct state_t
   reg_t pc;
   regfile_t<reg_t, NXPR, true> XPR;
   regfile_t<freg_t, NFPR, false> FPR;
+
+#ifdef TYPE_TAGGING_ENABLED
+  regfile_t<reg_t, NXPR, true> XPR_tags;
+  regfile_t<freg_t, NFPR, false> FPR_tags;
+#endif
 
   // control and status registers
   std::unordered_map<reg_t, csr_t_p> csrmap;
@@ -262,6 +268,13 @@ public:
   reg_t get_csr(int which, insn_t insn, bool write, bool peek = 0);
   reg_t get_csr(int which) { return get_csr(which, insn_t(0), false, true); }
   mmu_t* get_mmu() { return mmu; }
+#ifdef TYPE_TAGGING_ENABLED
+  mmu_t* get_tag_mmu() { return tag_mmu; }
+  bool get_tag_checking_enabled() const { return tag_checking; }
+  bool get_tag_propagation_enabled() const { return tag_propagation; }
+  void set_tag_checking(bool enabled) { tag_checking = enabled; }
+  void set_tag_propagation(bool enabled) { tag_propagation = enabled; }
+#endif
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
   unsigned get_const_xlen() const {
@@ -374,6 +387,11 @@ private:
 
   simif_t* sim;
   mmu_t* mmu; // main memory is always accessed via the mmu
+#ifdef TYPE_TAGGING_ENABLED
+  mmu_t* tag_mmu;
+  bool tag_checking;
+  bool tag_propagation;
+#endif
   std::unordered_map<std::string, extension_t*> custom_extensions;
   disassembler_t* disassembler;
   state_t state;
