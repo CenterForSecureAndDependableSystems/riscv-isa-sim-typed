@@ -13,7 +13,7 @@
   #define READ_REG_TAG(reg) (CHECK_REG(reg), STATE.XPR_tags[reg])
   #define WRITE_REG_TAG(reg, value) ({ \
       CHECK_REG(reg); \
-      reg_t wdata = (value); /* value may have side effects */ \
+      raw_tag_t wdata = (value); /* value may have side effects */ \
       STATE.XPR_tags.write(reg, wdata); \
     })
 
