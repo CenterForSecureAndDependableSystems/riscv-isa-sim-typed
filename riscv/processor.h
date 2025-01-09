@@ -19,6 +19,10 @@
 #include "../fesvr/memif.h"
 #include "vector_unit.h"
 
+#ifdef TYPE_TAGGING_ENABLED
+#include "type_tag.h"
+#endif
+
 #define FIRST_HPMCOUNTER 3
 #define N_HPMCOUNTERS 29
 
@@ -79,8 +83,8 @@ struct state_t
   regfile_t<freg_t, NFPR, false> FPR;
 
 #ifdef TYPE_TAGGING_ENABLED
-  regfile_t<reg_t, NXPR, true> XPR_tags;
-  regfile_t<freg_t, NFPR, false> FPR_tags;
+  regfile_t<raw_tag_t, NXPR, true> XPR_tags;
+  regfile_t<raw_tag_t, NFPR, false> FPR_tags;
 #endif
 
   // control and status registers
