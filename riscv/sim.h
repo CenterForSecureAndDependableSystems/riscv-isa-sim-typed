@@ -3,6 +3,7 @@
 #ifndef _RISCV_SIM_H
 #define _RISCV_SIM_H
 
+#include "config.h"
 #include "cfg.h"
 #include "debug_module.h"
 #include "devices.h"
@@ -30,6 +31,9 @@ class sim_t : public htif_t, public simif_t
 public:
   sim_t(const cfg_t *cfg, bool halted,
         std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
+#ifdef TYPE_TAGGING_ENABLED
+        std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems,
+#endif
         const std::vector<device_factory_sargs_t>& plugin_device_factories,
         const std::vector<std::string>& args,
         const debug_module_config_t &dm_config, const char *log_path,
@@ -83,6 +87,11 @@ private:
   bus_t bus;
   log_file_t log_file;
 
+#ifdef TYPE_TAGGING_ENABLED
+  std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems;
+  bus_t tag_bus;
+#endif
+
   FILE *cmd_file; // pointer to debug command input file
 
   socketif_t *socketif;
@@ -99,7 +108,7 @@ private:
   std::optional<std::function<void()>> next_interactive_action;
 
   // memory-mapped I/O routines
-  virtual char* addr_to_mem(reg_t paddr) override;
+  virtual char* addr_to_mem(reg_t paddr, bool tag_mem = false) override;
   virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes) override;
   virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes) override;
   void set_rom();

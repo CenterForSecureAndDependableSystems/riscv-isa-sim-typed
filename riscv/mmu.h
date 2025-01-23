@@ -77,7 +77,7 @@ private:
   mem_access_info_t generate_access_info(reg_t addr, access_type type, xlate_flags_t xlate_flags);
 
 public:
-  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc);
+  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc, bool tag_mmu = false);
   ~mmu_t();
 
   template<typename T>
@@ -93,8 +93,9 @@ public:
       load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags);
     }
 
-    if (unlikely(proc && proc->get_log_commits_enabled()))
+    if (unlikely(proc && proc->get_log_commits_enabled())) {
       proc->state.log_mem_read.push_back(std::make_tuple(addr, 0, sizeof(T)));
+    }
 
     return from_target(res);
   }
@@ -135,8 +136,9 @@ public:
       store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false);
     }
 
-    if (unlikely(proc && proc->get_log_commits_enabled()))
+    if (unlikely(proc && proc->get_log_commits_enabled())) {
       proc->state.log_mem_write.push_back(std::make_tuple(addr, val, sizeof(T)));
+    }
   }
 
   template<typename T>
@@ -382,6 +384,10 @@ private:
   reg_t load_reservation_address;
   uint16_t fetch_temp;
   reg_t blocksz;
+
+#ifdef TYPE_TAGGING_ENABLED
+  bool tag_mmu = false;
+#endif
 
   // implement an instruction cache for simulator performance
   icache_entry_t icache[ICACHE_ENTRIES];
