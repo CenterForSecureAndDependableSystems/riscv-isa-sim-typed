@@ -38,6 +38,9 @@ extern device_factory_t* ns16550_factory;
 
 sim_t::sim_t(const cfg_t *cfg, bool halted,
              std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
+#ifdef TYPE_TAGGING_ENABLED
+             std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems,
+#endif
              const std::vector<device_factory_sargs_t>& plugin_device_factories,
              const std::vector<std::string>& args,
              const debug_module_config_t &dm_config,
@@ -50,6 +53,9 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     mems(mems),
     dtb_enabled(dtb_enabled),
     log_file(log_path),
+#ifdef TYPE_TAGGING_ENABLED
+    tag_mems(tag_mems),
+#endif
     cmd_file(cmd_file),
     sout_(nullptr),
     current_step(0),
@@ -68,6 +74,11 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     bus.add_device(x.first, x.second);
 
   bus.add_device(DEBUG_START, &debug_module);
+
+#ifdef TYPE_TAGGING_ENABLED
+  for (auto& x : tag_mems)
+    tag_bus.add_device(x.first, x.second);
+#endif
 
   socketif = NULL;
 #ifdef HAVE_BOOST_ASIO
@@ -399,10 +410,18 @@ void sim_t::set_rom()
   add_device(DEFAULT_RSTVEC, boot_rom);
 }
 
-char* sim_t::addr_to_mem(reg_t paddr) {
+char* sim_t::addr_to_mem(reg_t paddr, bool tag_mem) {
   if (!paddr_ok(paddr))
     return NULL;
-  auto desc = bus.find_device(paddr);
+
+  bus_t* b = &this->bus;
+#ifdef TYPE_TAGGING_ENABLED
+  if(tag_mem) {
+    b = &this->tag_bus;
+  }
+#endif
+
+  auto desc = b->find_device(paddr);
   if (auto mem = dynamic_cast<abstract_mem_t*>(desc.second))
     if (paddr - desc.first < mem->size())
       return mem->contents(paddr - desc.first);

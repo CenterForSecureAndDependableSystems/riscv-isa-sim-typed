@@ -7,10 +7,20 @@
 #include "processor.h"
 #include "decode_macros.h"
 
-mmu_t::mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc)
+mmu_t::mmu_t(
+  simif_t* sim, 
+  endianness_t endianness,
+  processor_t* proc
+#ifdef TYPE_TAGGING_ENABLED
+  , bool tag_mmu
+#endif
+)
  : sim(sim), proc(proc),
 #ifdef RISCV_ENABLE_DUAL_ENDIAN
   target_big_endian(endianness == endianness_big),
+#endif
+#ifdef TYPE_TAGGING_ENABLED
+  tag_mmu(tag_mmu),
 #endif
   check_triggers_fetch(false),
   check_triggers_load(false),
@@ -78,7 +88,7 @@ tlb_entry_t mmu_t::fetch_slow_path(reg_t vaddr)
   reg_t vpn = vaddr >> PGSHIFT;
   if (unlikely(tlb_insn_tag[vpn % TLB_ENTRIES] != (vpn | TLB_CHECK_TRIGGERS))) {
     reg_t paddr = translate(access_info, sizeof(fetch_temp));
-    if (auto host_addr = sim->addr_to_mem(paddr)) {
+    if (auto host_addr = sim->addr_to_mem(paddr, tag_mmu)) {
       result = refill_tlb(vaddr, paddr, host_addr, FETCH);
     } else {
       if (!mmio_fetch(paddr, sizeof fetch_temp, (uint8_t*)&fetch_temp))
@@ -131,6 +141,10 @@ bool mmu_t::mmio_ok(reg_t paddr, access_type UNUSED type)
 
 bool mmu_t::mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes)
 {
+  if(tag_mmu) {
+    std::cerr << "SPIKE DEBUG: Hit mmio_fetch function in tag memory" << std::endl;
+    return false;
+  }
   if (!mmio_ok(paddr, FETCH))
     return false;
 
@@ -149,6 +163,10 @@ bool mmu_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
 
 bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
 {
+  if(tag_mmu) {
+    std::cerr << "SPIKE DEBUG: Hit mmio function in tag memory" << std::endl;
+    return false;
+  }
   bool power_of_2 = (len & (len - 1)) == 0;
   bool naturally_aligned = (paddr & (len - 1)) == 0;
 
@@ -207,7 +225,7 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
     throw trap_load_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
   }
 
-  if (auto host_addr = sim->addr_to_mem(paddr)) {
+  if (auto host_addr = sim->addr_to_mem(paddr, tag_mmu)) {
     memcpy(bytes, host_addr, len);
     if (tracer.interested_in_range(paddr, paddr + PGSIZE, LOAD))
       tracer.trace(paddr, len, LOAD);
@@ -269,7 +287,7 @@ void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_acces
   reg_t paddr = translate(access_info, len);
 
   if (actually_store) {
-    if (auto host_addr = sim->addr_to_mem(paddr)) {
+    if (auto host_addr = sim->addr_to_mem(paddr, tag_mmu)) {
       memcpy(host_addr, bytes, len);
       if (tracer.interested_in_range(paddr, paddr + PGSIZE, STORE))
         tracer.trace(paddr, len, STORE);

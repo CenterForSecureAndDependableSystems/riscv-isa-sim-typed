@@ -64,7 +64,7 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
   register_base_instructions();
   mmu = new mmu_t(sim, cfg->endianness, this);
 #ifdef TYPE_TAGGING_ENABLED
-  tag_mmu = new mmu_t(sim, cfg->endianness, this);
+  tag_mmu = new mmu_t(sim, cfg->endianness, this, true);
 #endif
 
   disassembler = new disassembler_t(&isa);

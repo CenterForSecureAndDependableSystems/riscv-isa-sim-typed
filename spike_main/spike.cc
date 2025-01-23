@@ -1,7 +1,7 @@
 // See LICENSE for license details.
 
 #include "config.h"
-#include "cfg.h"
+#include "cfg.h" 
 #include "sim.h"
 #include "mmu.h"
 #include "arith.h"
@@ -460,6 +460,11 @@ int main(int argc, char** argv)
   std::vector<std::pair<reg_t, abstract_mem_t*>> mems =
       make_mems(cfg.mem_layout);
 
+#ifdef TYPE_TAGGING_ENABLED
+  std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems =
+      make_mems(cfg.mem_layout);
+#endif
+
   if (kernel && check_file_exists(kernel)) {
     const char *isa = cfg.isa;
     kernel_size = get_file_size(kernel);
@@ -508,8 +513,14 @@ int main(int argc, char** argv)
     cfg.hartids = default_hartids;
   }
 
-  sim_t s(&cfg, halted,
-      mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
+  sim_t s(
+      &cfg, 
+      halted,
+      mems, 
+#ifdef TYPE_TAGGING_ENABLED
+      tag_mems,
+#endif
+      plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
       socket,
       cmd_file);
   std::unique_ptr<remote_bitbang_t> remote_bitbang((remote_bitbang_t *) NULL);
@@ -546,6 +557,11 @@ int main(int argc, char** argv)
 
   for (auto& mem : mems)
     delete mem.second;
+
+#ifdef TYPE_TAGGING_ENABLED
+  for (auto& mem : tag_mems)
+    delete mem.second;
+#endif
 
   return return_code;
 }
