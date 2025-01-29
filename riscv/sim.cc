@@ -65,6 +65,9 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     log(false),
     remote_bitbang(NULL),
     debug_module(this, dm_config)
+#ifdef TYPE_TAGGING_ENABLED
+    , tag_debug_module(this, dm_config)
+#endif
 {
   signal(SIGINT, &handle_signal);
 
@@ -78,6 +81,12 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
 #ifdef TYPE_TAGGING_ENABLED
   for (auto& x : tag_mems)
     tag_bus.add_device(x.first, x.second);
+
+  // TODO [TAG]: Consider fixing the logic in device.cc (bus_t::load/store)
+  // so we don't have to insert an extra debug module here.
+  // This could also be resolved by mapping tag memory onto regions of normal
+  // memory.
+  tag_bus.add_device(DEBUG_START, &tag_debug_module);
 #endif
 
   socketif = NULL;
@@ -351,17 +360,31 @@ static bool paddr_ok(reg_t addr)
   return true;
 }
 
-bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes)
+bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
+
+#ifdef TYPE_TAGGING_ENABLED
+  if(tag_mem) {
+    return tag_bus.load(paddr, len, bytes);
+  }
+#endif
+
   return bus.load(paddr, len, bytes);
 }
 
-bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
+bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_mem)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
+
+#ifdef TYPE_TAGGING_ENABLED
+  if(tag_mem) {
+    return tag_bus.store(paddr, len, bytes);
+  }
+#endif
+
   return bus.store(paddr, len, bytes);
 }
 

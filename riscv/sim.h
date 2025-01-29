@@ -109,8 +109,8 @@ private:
 
   // memory-mapped I/O routines
   virtual char* addr_to_mem(reg_t paddr, bool tag_mem = false) override;
-  virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes) override;
-  virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes) override;
+  virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem = false) override;
+  virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_mem = false) override;
   void set_rom();
 
   virtual const char* get_symbol(uint64_t paddr) override;
@@ -164,6 +164,9 @@ public:
   // enumerate processors, which segfaults if procs hasn't been initialized
   // yet.
   debug_module_t debug_module;
+#ifdef TYPE_TAGGING_ENABLED
+  debug_module_t tag_debug_module;
+#endif
 };
 
 extern volatile bool ctrlc_pressed;
