@@ -141,14 +141,14 @@ bool mmu_t::mmio_ok(reg_t paddr, access_type UNUSED type)
 
 bool mmu_t::mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes)
 {
-  if(tag_mmu) {
-    std::cerr << "SPIKE DEBUG: Hit mmio_fetch function in tag memory" << std::endl;
-    return false;
-  }
   if (!mmio_ok(paddr, FETCH))
     return false;
 
+#ifdef TYPE_TAGGING_ENABLED
+  return sim->mmio_fetch(paddr, len, bytes, tag_mmu);
+#else
   return sim->mmio_fetch(paddr, len, bytes);
+#endif
 }
 
 bool mmu_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes)
@@ -163,10 +163,6 @@ bool mmu_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
 
 bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
 {
-  if(tag_mmu) {
-    std::cerr << "SPIKE DEBUG: Hit mmio function in tag memory" << std::endl;
-    return false;
-  }
   bool power_of_2 = (len & (len - 1)) == 0;
   bool naturally_aligned = (paddr & (len - 1)) == 0;
 
@@ -174,10 +170,21 @@ bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
     if (!mmio_ok(paddr, type))
       return false;
 
-    if (type == STORE)
+#ifdef TYPE_TAGGING_ENABLED
+    if (type == STORE) {
+      return sim->mmio_store(paddr, len, bytes, this->tag_mmu);
+    }
+    else {
+      return sim->mmio_load(paddr, len, bytes, this->tag_mmu);
+    }
+#else
+    if (type == STORE) {
       return sim->mmio_store(paddr, len, bytes);
-    else
+    }
+    else {
       return sim->mmio_load(paddr, len, bytes);
+    }
+#endif
   }
 
   for (size_t i = 0; i < len; i++) {
