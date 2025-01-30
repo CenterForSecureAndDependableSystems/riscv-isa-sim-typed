@@ -17,6 +17,8 @@
       STATE.XPR_tags.write(reg, wdata); \
     })
 
+// #define TYPE_TAGGING_DEBUG
+
 #else
   #define IF_TAG_PROPAGATION(code)
   #define IF_TAG_CHECKING(code)
