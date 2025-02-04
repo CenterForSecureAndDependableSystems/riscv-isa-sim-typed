@@ -2,7 +2,7 @@
 if(sreg_t(RD) == 0 && p->get_tag_propagation_enabled()) {
 	// Debug instruction: get a tag
 	reg_t addr = RS1 + insn.s_imm();
-	WRITE_REG(insn.rs2(), TAG_MMU.load<raw_tag_t>(addr));
+	WRITE_REG(insn.rs2(), TAG_MMU.load<typetag_t>(addr));
 }
 else
 #endif

@@ -77,7 +77,11 @@ private:
   mem_access_info_t generate_access_info(reg_t addr, access_type type, xlate_flags_t xlate_flags);
 
 public:
-  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc, bool tag_mmu = false);
+  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc
+#ifdef TYPE_TAGGING_ENABLED
+    , bool tag_mmu = false
+#endif
+  );
   ~mmu_t();
 
   template<typename T>

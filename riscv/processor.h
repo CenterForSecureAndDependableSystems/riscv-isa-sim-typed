@@ -20,7 +20,7 @@
 #include "vector_unit.h"
 
 #ifdef TYPE_TAGGING_ENABLED
-#include "type_tag.h"
+#include <typetag/typetag.h>
 #endif
 
 #define FIRST_HPMCOUNTER 3
@@ -83,8 +83,8 @@ struct state_t
   regfile_t<freg_t, NFPR, false> FPR;
 
 #ifdef TYPE_TAGGING_ENABLED
-  regfile_t<raw_tag_t, NXPR, true> XPR_tags;
-  regfile_t<raw_tag_t, NFPR, false> FPR_tags;
+  regfile_t<typetag_t, NXPR, true> XPR_tags;
+  regfile_t<typetag_t, NFPR, false> FPR_tags;
 #endif
 
   // control and status registers

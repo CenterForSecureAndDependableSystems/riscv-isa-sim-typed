@@ -53,10 +53,16 @@ m4_include(ax_boost_asio.m4)
 m4_include(ax_boost_regex.m4)
 
 AC_ARG_ENABLE([type-tagging],
-  AS_HELP_STRING([--enable-type-tagging], [Enable experimental type tagging]),
-  [enable_type_tagging=$enableval], [enable_type_tagging=yes])
+  AS_HELP_STRING(
+    [--enable-type-tagging], [Enable experimental type tagging]
+  ),
+  [enable_type_tagging=$enableval],
+  [enable_type_tagging=yes]
+)
 
-AC_DEFINE([TYPE_TAGGING_ENABLED], [], ["Enable experimental type tagging"])
+AS_IF([test x$enable_type_tagging = xyes],
+  [m4_include(ax_typetag.m4)]
+)
 
 #-------------------------------------------------------------------------
 # Checks for programs
