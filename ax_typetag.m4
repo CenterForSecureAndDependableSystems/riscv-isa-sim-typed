@@ -37,7 +37,7 @@ AS_IF([test -n "$_AX_TYPETAG_includedir"],
 )
 
 AS_IF([test -n "$_AX_TYPETAG_libdir"],
-    [AC_CHECK_LIB([$_AX_TYPETAG_libdir/libtypetag.so], [tt_get_tag_type],
+    [AC_CHECK_LIB([$_AX_TYPETAG_libdir/libtypetag.so], [tt_get_obj_type],
         [
             AC_DEFINE(HAVE_TYPETAG, [1], [Define if you have libtypetag])
             TYPETAG_LDFLAGS="-L$_AX_TYPETAG_libdir"
@@ -47,7 +47,7 @@ AS_IF([test -n "$_AX_TYPETAG_libdir"],
         ],
         [AC_MSG_ERROR([libtypetag not found.])]
     )],
-    [AC_CHECK_LIB([typetag], [tt_get_tag_type],
+    [AC_CHECK_LIB([typetag], [tt_get_obj_type],
         [
             AC_DEFINE(HAVE_TYPETAG, [1], [Define if you have libtypetag])
             TYPETAG_LDFLAGS=""

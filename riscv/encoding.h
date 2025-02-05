@@ -2913,6 +2913,14 @@
 #define CAUSE_VIRTUAL_INSTRUCTION 0x16
 #define CAUSE_STORE_GUEST_PAGE_FAULT 0x17
 
+// Type tagging extensions
+// TODO [TAG]: Generate these using the riscv/riscv-opcodes repo?
+#define CAUSE_INT_OVERFLOW 0x401
+#define CAUSE_INT_DIV_ZERO 0x402
+#define CAUSE_INVALID_CALL_TAG 0x403
+#define CAUSE_INVALID_INDIRECT_TAG 0x404
+#define CAUSE_INVALID_RETURN_TAG 0x405
+
 #define INSN_FIELD_RD 0xf80
 #define INSN_FIELD_RT 0xf8000
 #define INSN_FIELD_RS1 0xf8000

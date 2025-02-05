@@ -278,6 +278,15 @@ public:
   bool get_tag_propagation_enabled() const { return tag_propagation; }
   void set_tag_checking(bool enabled) { tag_checking = enabled; }
   void set_tag_propagation(bool enabled) { tag_propagation = enabled; }
+  bool get_tag_fault_enabled(tagexception_t e) const {
+    return this->enabled_tag_faults.count(e) != 0;
+  }
+  void set_tag_fault_enabled(tagexception_t e, bool enabled) {
+    if(enabled)
+      this->enabled_tag_faults.insert(e);
+    else
+      this->enabled_tag_faults.erase(e);
+  }
 #endif
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
@@ -395,6 +404,7 @@ private:
   mmu_t* tag_mmu;
   bool tag_checking;
   bool tag_propagation;
+  std::set<int> enabled_tag_faults;
 #endif
   std::unordered_map<std::string, extension_t*> custom_extensions;
   disassembler_t* disassembler;

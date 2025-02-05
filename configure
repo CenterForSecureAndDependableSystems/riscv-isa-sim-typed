@@ -3962,9 +3962,9 @@ fi
 
 if test -n "$_AX_TYPETAG_libdir"
 then :
-  as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_AX_TYPETAG_libdir/libtypetag.so""_tt_get_tag_type" | $as_tr_sh`
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tt_get_tag_type in -l$_AX_TYPETAG_libdir/libtypetag.so" >&5
-printf %s "checking for tt_get_tag_type in -l$_AX_TYPETAG_libdir/libtypetag.so... " >&6; }
+  as_ac_Lib=`printf "%s\n" "ac_cv_lib_$_AX_TYPETAG_libdir/libtypetag.so""_tt_get_obj_type" | $as_tr_sh`
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tt_get_obj_type in -l$_AX_TYPETAG_libdir/libtypetag.so" >&5
+printf %s "checking for tt_get_obj_type in -l$_AX_TYPETAG_libdir/libtypetag.so... " >&6; }
 if eval test \${$as_ac_Lib+y}
 then :
   printf %s "(cached) " >&6
@@ -3975,12 +3975,12 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 namespace conftest {
-  extern "C" int tt_get_tag_type ();
+  extern "C" int tt_get_obj_type ();
 }
 int
 main (void)
 {
-return conftest::tt_get_tag_type ();
+return conftest::tt_get_obj_type ();
   ;
   return 0;
 }
@@ -4015,9 +4015,9 @@ else $as_nop
 fi
 
 else $as_nop
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tt_get_tag_type in -ltypetag" >&5
-printf %s "checking for tt_get_tag_type in -ltypetag... " >&6; }
-if test ${ac_cv_lib_typetag_tt_get_tag_type+y}
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tt_get_obj_type in -ltypetag" >&5
+printf %s "checking for tt_get_obj_type in -ltypetag... " >&6; }
+if test ${ac_cv_lib_typetag_tt_get_obj_type+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
@@ -4027,29 +4027,29 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 namespace conftest {
-  extern "C" int tt_get_tag_type ();
+  extern "C" int tt_get_obj_type ();
 }
 int
 main (void)
 {
-return conftest::tt_get_tag_type ();
+return conftest::tt_get_obj_type ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_cxx_try_link "$LINENO"
 then :
-  ac_cv_lib_typetag_tt_get_tag_type=yes
+  ac_cv_lib_typetag_tt_get_obj_type=yes
 else $as_nop
-  ac_cv_lib_typetag_tt_get_tag_type=no
+  ac_cv_lib_typetag_tt_get_obj_type=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_typetag_tt_get_tag_type" >&5
-printf "%s\n" "$ac_cv_lib_typetag_tt_get_tag_type" >&6; }
-if test "x$ac_cv_lib_typetag_tt_get_tag_type" = xyes
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_typetag_tt_get_obj_type" >&5
+printf "%s\n" "$ac_cv_lib_typetag_tt_get_obj_type" >&6; }
+if test "x$ac_cv_lib_typetag_tt_get_obj_type" = xyes
 then :
 
 
