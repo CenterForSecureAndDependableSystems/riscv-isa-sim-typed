@@ -1,5 +1,5 @@
 #ifdef TYPE_TAGGING_ENABLED
-if(sreg_t(RD) == 0) {
+if(insn.rd() == 0) {
 	switch(sreg_t(insn.i_imm())) {
 	case 0:
 		p->set_tag_propagation(false);
