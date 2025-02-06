@@ -1,6 +1,6 @@
 #ifdef TYPE_TAGGING_ENABLED
 if(insn.rd() == 0) {
-	p->set_tag_fault_enabled(RS1, RS2);
+	p->set_tag_trap_mode(RS1, (TrapMode)insn.i_imm());
 
 #ifdef TYPE_TAGGING_DEBUG
 	if(RS2) {
