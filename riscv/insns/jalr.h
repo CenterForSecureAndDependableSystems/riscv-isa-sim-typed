@@ -4,14 +4,8 @@ IF_TAG_CHECKING(
     // If this is a `ret` pseudoinstruction (RD == x0)
     // and the tag is not marked as a valid return address,
     // panic.
-    if(insn.rd() == 0 
-       && tt_get_obj_type(READ_REG_TAG(insn.rs1())) != TT_OBJ_RETURN
-       && p->get_tag_fault_enabled(TT_EXP_INVALID_RETURN_TAG))
-    {
-        #ifdef TYPE_TAGGING_DEBUG
-        printf("[SPIKE DEBUG] FAULT: Return address was not tagged appropriately\n");
-        #endif
-        // throw trap_return_tag_fault();
+    if(insn.rd() == 0 && tt_get_obj_type(READ_REG_TAG(insn.rs1())) != TT_OBJ_RETURN) {
+        TAG_TRAP(TT_EXP_INVALID_RETURN_TAG, "Return address was not tagged appropriately", trap_return_tag_fault());
     }
 )
 

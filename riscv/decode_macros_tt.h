@@ -17,7 +17,16 @@
       STATE.XPR_tags.write(reg, wdata); \
     })
 
-// #define TYPE_TAGGING_DEBUG
+  #define TAG_TRAP(exception_num, message, exception) \
+    if(p->get_tag_trap_mode(exception_num) == TrapMode::TRAP_WARN) { \
+      printf("[SPIKE DEBUG] TRAP (warn): " message "\n"); \
+    } \
+    else if(p->get_tag_trap_mode(exception_num) == TrapMode::TRAP_ENABLED) { \
+      printf("[SPIKE DEBUG] TRAP: " message "\n"); \
+      throw exception; \
+    }
+
+#define TYPE_TAGGING_DEBUG
 
 #else
   #define IF_TAG_PROPAGATION(code)

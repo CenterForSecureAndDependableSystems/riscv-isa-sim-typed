@@ -21,6 +21,7 @@
 
 #ifdef TYPE_TAGGING_ENABLED
 #include <typetag/typetag.h>
+#include <typetag/exception.h>
 #endif
 
 #define FIRST_HPMCOUNTER 3
@@ -272,22 +273,17 @@ public:
   reg_t get_csr(int which, insn_t insn, bool write, bool peek = 0);
   reg_t get_csr(int which) { return get_csr(which, insn_t(0), false, true); }
   mmu_t* get_mmu() { return mmu; }
+
 #ifdef TYPE_TAGGING_ENABLED
   mmu_t* get_tag_mmu() { return tag_mmu; }
   bool get_tag_checking_enabled() const { return tag_checking; }
   bool get_tag_propagation_enabled() const { return tag_propagation; }
   void set_tag_checking(bool enabled) { tag_checking = enabled; }
   void set_tag_propagation(bool enabled) { tag_propagation = enabled; }
-  bool get_tag_fault_enabled(tagexception_t e) const {
-    return this->enabled_tag_faults.count(e) != 0;
-  }
-  void set_tag_fault_enabled(tagexception_t e, bool enabled) {
-    if(enabled)
-      this->enabled_tag_faults.insert(e);
-    else
-      this->enabled_tag_faults.erase(e);
-  }
+  TrapMode get_tag_trap_mode(tagexception_t e) const;
+  void set_tag_trap_mode(tagexception_t e, TrapMode mode);
 #endif
+
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
   unsigned get_const_xlen() const {
@@ -402,9 +398,9 @@ private:
   mmu_t* mmu; // main memory is always accessed via the mmu
 #ifdef TYPE_TAGGING_ENABLED
   mmu_t* tag_mmu;
-  bool tag_checking;
-  bool tag_propagation;
-  std::set<int> enabled_tag_faults;
+  bool tag_checking = false;
+  bool tag_propagation = false;
+  std::unordered_map<tagexception_t, TrapMode> tag_trap_modes;
 #endif
   std::unordered_map<std::string, extension_t*> custom_extensions;
   disassembler_t* disassembler;
