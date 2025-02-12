@@ -38,6 +38,8 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  -s                    Command I/O via socket (use with -d)\n");
 #endif
   fprintf(stderr, "  -h, --help            Print this help message\n");
+  fprintf(stderr, "  --tag-mem=<a:n:b,...> Create and assign a tag memory section at base address `a`\n");
+  fprintf(stderr, "                          to a region of memory at base address `b` of size `n`\n");
   fprintf(stderr, "  --halted              Start halted, allowing a debugger to connect\n");
   fprintf(stderr, "  --log=<name>          File name for option -l\n");
   fprintf(stderr, "  --debug-cmd=<name>    Read commands from file (use with -d)\n");
@@ -216,6 +218,39 @@ static mem_cfg_t create_mem_region(unsigned long long base, unsigned long long s
   return mem_cfg_t(base, size);
 }
 
+static tag_mapping_cfg_t create_mapped_tag_region(unsigned long long base, unsigned long long size, unsigned long long mapped_base)
+{
+  mem_cfg_t mem = create_mem_region(base, size); // Create a normal memory region for tags
+
+  // Perform same alignment checks on 
+  auto mapped_base0 = base, size0 = size;
+  size += mapped_base0 % PGSIZE;
+  mapped_base -= mapped_base0 % PGSIZE;
+  if (size % PGSIZE != 0)
+    size += PGSIZE - size % PGSIZE;
+
+  if (size != size0) {
+    fprintf(stderr, "Warning: the memory at [0x%llX, 0x%llX] has been realigned\n"
+                    "to the %ld KiB page size: [0x%llX, 0x%llX]\n",
+            mapped_base0, mapped_base0 + size0 - 1, long(PGSIZE / 1024), mapped_base, mapped_base + size - 1);
+  }
+
+  if (!mem_cfg_t::check_if_supported(mapped_base, size)) {
+    fprintf(stderr, "Unsupported memory region "
+                    "{base = 0x%llX, size = 0x%llX} specified for target mapping\n",
+            mapped_base, size);
+    exit(EXIT_FAILURE);
+  }
+
+  if(mem.get_size() != size) {
+    fprintf(stderr, "Tag region (0x%llX) and mapped region (Ox%llX) do not have "
+                    "matching sizes (0x%lX != 0x%llx)\n", 
+            base, mapped_base, mem.get_size(), size);
+  }
+
+  return tag_mapping_cfg_t(mem.get_base(), mem.get_size(), mapped_base);
+}
+
 static std::vector<mem_cfg_t> parse_mem_layout(const char* arg)
 {
   std::vector<mem_cfg_t> res;
@@ -253,11 +288,76 @@ static std::vector<mem_cfg_t> parse_mem_layout(const char* arg)
   return merged_mem;
 }
 
+static std::vector<tag_mapping_cfg_t> parse_tag_mappings(const char* arg)
+{
+  std::vector<tag_mapping_cfg_t> res;
+  char* p;
+
+  // handle base/size/mapping tuples
+  while (true) {
+    auto base = strtoull(arg, &p, 0);
+    if (!*p || *p != ':')
+      help();
+    auto size = strtoull(p + 1, &p, 0);
+    if (!*p || *p != ':')
+      help();
+    auto mapped_base = strtoull(p + 1, &p, 0);
+
+    res.push_back(create_mapped_tag_region(base, size, mapped_base));
+
+    if (!*p)
+      break;
+    if (*p != ',')
+      help();
+    arg = p + 1;
+  }
+
+  // TODO [TAG]
+  // auto merged_mem = merge_overlapping_memory_regions(res);
+
+  // assert(!merged_mem.empty());
+  return res;
+}
+
 static std::vector<std::pair<reg_t, abstract_mem_t*>> make_mems(const std::vector<mem_cfg_t> &layout)
 {
   std::vector<std::pair<reg_t, abstract_mem_t*>> mems;
   mems.reserve(layout.size());
   for (const auto &cfg : layout) {
+    mems.push_back(std::make_pair(cfg.get_base(), new mem_t(cfg.get_size())));
+  }
+  return mems;
+}
+
+static std::vector<std::pair<reg_t, abstract_mem_t*>> make_tag_mems(const std::vector<tag_mapping_cfg_t> &mappings, const std::vector<mem_cfg_t> &layouts)
+{
+  std::vector<std::pair<reg_t, abstract_mem_t*>> mems;
+  mems.reserve(mappings.size());
+  for (const auto &cfg : mappings) {
+    auto it = std::find_if(
+      layouts.begin(),
+      layouts.end(),
+      [&cfg](mem_cfg_t m){ return m.get_base() == cfg.get_mapped_base(); }
+    );
+
+    if(it == layouts.end()) {
+      fprintf(stderr, "Tag region (0x%lX:0x%lX) maps onto 0x%lX, but no memory "
+                      "region with that base exists.\n", 
+        cfg.get_base(), cfg.get_size(), cfg.get_mapped_base());
+      exit(EXIT_FAILURE);
+    }
+    if(it->get_size() < cfg.get_size()) {
+      fprintf(stderr, "Tag region (0x%lX:0x%lX) must not have a greater size than"
+                      "the region which it maps onto (0x%lX:0x%lX).", 
+        cfg.get_base(), cfg.get_size(), it->get_base(), it->get_size());
+      exit(EXIT_FAILURE);
+    }
+    if(it->get_size() > cfg.get_size()) {
+      fprintf(stderr, "Warning: Tag region (0x%lX:0x%lX) is smaller than the region "
+                      "it is mapped to (0x%lX:0x%lX).", 
+        cfg.get_base(), cfg.get_size(), it->get_base(), it->get_size());
+    }
+
     mems.push_back(std::make_pair(cfg.get_base(), new mem_t(cfg.get_size())));
   }
   return mems;
@@ -375,6 +475,7 @@ int main(int argc, char** argv)
 #endif
   parser.option('p', 0, 1, [&](const char* s){nprocs = atoul_nonzero_safe(s);});
   parser.option('m', 0, 1, [&](const char* s){cfg.mem_layout = parse_mem_layout(s);});
+  parser.option(0, "tag-mem", 0, [&](const char *s){cfg.tag_mem_mappings = parse_tag_mappings(s);});
   parser.option(0, "halted", 0, [&](const char UNUSED *s){halted = true;});
   parser.option(0, "rbb-port", 1, [&](const char* s){use_rbb = true; rbb_port = atoul_safe(s);});
   parser.option(0, "pc", 1, [&](const char* s){cfg.start_pc = strtoull(s, 0, 0);});
@@ -462,7 +563,7 @@ int main(int argc, char** argv)
 
 #ifdef TYPE_TAGGING_ENABLED
   std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems =
-      make_mems(cfg.mem_layout);
+      make_tag_mems(cfg.tag_mem_mappings, cfg.mem_layout);
 #endif
 
   if (kernel && check_file_exists(kernel)) {
