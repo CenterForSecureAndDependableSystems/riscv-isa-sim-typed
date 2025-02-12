@@ -12,6 +12,12 @@ mem_cfg_t::mem_cfg_t(reg_t base, reg_t size) : base(base), size(size)
   assert(mem_cfg_t::check_if_supported(base, size));
 }
 
+tag_mapping_cfg_t::tag_mapping_cfg_t(reg_t base, reg_t size, reg_t mapped_base) 
+  : mem_cfg_t(base, size)
+{
+
+}
+
 bool mem_cfg_t::check_if_supported(reg_t base, reg_t size)
 {
   // The truth of these conditions should be ensured by whatever is creating

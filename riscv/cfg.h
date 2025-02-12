@@ -58,6 +58,20 @@ private:
   reg_t size;
 };
 
+class tag_mapping_cfg_t : public mem_cfg_t
+{
+public:
+  tag_mapping_cfg_t(reg_t base, reg_t size, reg_t mapped_base);
+
+  reg_t get_mapped_base() const {
+    return mapped_base;
+  }
+
+private:
+  reg_t mapped_base;
+};
+
+
 class cfg_t
 {
 public:
@@ -72,6 +86,7 @@ public:
   reg_t                   pmpregions;
   reg_t                   pmpgranularity;
   std::vector<mem_cfg_t>  mem_layout;
+  std::vector<tag_mapping_cfg_t>  tag_mem_mappings;
   std::optional<reg_t>    start_pc;
   std::vector<size_t>     hartids;
   bool                    explicit_hartids;
