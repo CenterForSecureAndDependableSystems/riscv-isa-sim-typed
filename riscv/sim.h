@@ -31,15 +31,16 @@ class sim_t : public htif_t, public simif_t
 public:
   sim_t(const cfg_t *cfg, bool halted,
         std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
-#ifdef TYPE_TAGGING_ENABLED
-        std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems,
-#endif
         const std::vector<device_factory_sargs_t>& plugin_device_factories,
         const std::vector<std::string>& args,
         const debug_module_config_t &dm_config, const char *log_path,
         bool dtb_enabled, const char *dtb_file,
         bool socket_enabled,
-        FILE *cmd_file); // needed for command line option --cmd
+        FILE *cmd_file // needed for command line option --cmd
+#ifdef TYPE_TAGGING_ENABLED
+        , std::vector<tag_mapping_cfg_t> tag_mappings
+#endif
+  );
   ~sim_t();
 
   // run the simulation to completion
@@ -87,12 +88,11 @@ private:
   bus_t bus;
   log_file_t log_file;
 
-#ifdef TYPE_TAGGING_ENABLED
-  std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems;
-  bus_t tag_bus;
-#endif
-
   FILE *cmd_file; // pointer to debug command input file
+
+#ifdef TYPE_TAGGING_ENABLED
+  tag_regions_t tag_region_map;
+#endif
 
   socketif_t *socketif;
   std::ostream sout_; // used for socket and terminal interface
@@ -164,9 +164,6 @@ public:
   // enumerate processors, which segfaults if procs hasn't been initialized
   // yet.
   debug_module_t debug_module;
-#ifdef TYPE_TAGGING_ENABLED
-  debug_module_t tag_debug_module;
-#endif
 };
 
 extern volatile bool ctrlc_pressed;

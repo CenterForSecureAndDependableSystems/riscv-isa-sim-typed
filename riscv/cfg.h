@@ -2,6 +2,7 @@
 #ifndef _RISCV_CFG_H
 #define _RISCV_CFG_H
 
+#include <map>
 #include <optional>
 #include <vector>
 #include "decode.h"
@@ -61,6 +62,8 @@ private:
 class tag_mapping_cfg_t : public mem_cfg_t
 {
 public:
+  /// Create a tag memory region at `base:size`, representing the 
+  /// memory tags for an existing region at `mapped_base:size`. 
   tag_mapping_cfg_t(reg_t base, reg_t size, reg_t mapped_base);
 
   reg_t get_mapped_base() const {
@@ -69,6 +72,29 @@ public:
 
 private:
   reg_t mapped_base;
+};
+
+/// A bidirectional map for translating memory addresses to their
+/// corresponding tag addresses based on `tag_mappings`.
+class tag_regions_t {
+public:
+  tag_regions_t(const std::vector<tag_mapping_cfg_t>& tag_mappings) {
+    for(const auto& cfg : tag_mappings) {
+      base_to_tag.insert(std::make_pair(cfg.get_mapped_base(), cfg));
+      tag_to_base.insert(std::make_pair(cfg.get_base(), cfg));
+    }
+  }
+
+  reg_t get_tag_addr(reg_t base_addr) {
+    
+  }
+
+  reg_t get_base_addr(reg_t tag_addr) {
+
+  }
+private:
+  std::map<reg_t, tag_mapping_cfg_t> base_to_tag;
+  std::map<reg_t, tag_mapping_cfg_t> tag_to_base; 
 };
 
 

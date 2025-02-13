@@ -564,6 +564,7 @@ int main(int argc, char** argv)
 #ifdef TYPE_TAGGING_ENABLED
   std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems =
       make_tag_mems(cfg.tag_mem_mappings, cfg.mem_layout);
+  mems.insert(mems.end(), tag_mems.begin(), tag_mems.end());
 #endif
 
   if (kernel && check_file_exists(kernel)) {
@@ -618,12 +619,13 @@ int main(int argc, char** argv)
       &cfg, 
       halted,
       mems, 
-#ifdef TYPE_TAGGING_ENABLED
-      tag_mems,
-#endif
       plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
       socket,
-      cmd_file);
+      cmd_file
+#ifdef TYPE_TAGGING_ENABLED
+      , tag_mems
+#endif
+    );
   std::unique_ptr<remote_bitbang_t> remote_bitbang((remote_bitbang_t *) NULL);
   std::unique_ptr<jtag_dtm_t> jtag_dtm(
       new jtag_dtm_t(&s.debug_module, dmi_rti));
