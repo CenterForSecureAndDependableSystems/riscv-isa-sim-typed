@@ -38,25 +38,26 @@ extern device_factory_t* ns16550_factory;
 
 sim_t::sim_t(const cfg_t *cfg, bool halted,
              std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
-#ifdef TYPE_TAGGING_ENABLED
-             std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems,
-#endif
              const std::vector<device_factory_sargs_t>& plugin_device_factories,
              const std::vector<std::string>& args,
              const debug_module_config_t &dm_config,
              const char *log_path,
              bool dtb_enabled, const char *dtb_file,
              bool socket_enabled,
-             FILE *cmd_file) // needed for command line option --cmd
+             FILE *cmd_file // needed for command line option --cmd
+#ifdef TYPE_TAGGING_ENABLED
+             , std::vector<tag_mapping_cfg_t> tag_mappings
+#endif
+  )
   : htif_t(args),
     cfg(cfg),
     mems(mems),
     dtb_enabled(dtb_enabled),
     log_file(log_path),
-#ifdef TYPE_TAGGING_ENABLED
-    tag_mems(tag_mems),
-#endif
     cmd_file(cmd_file),
+#ifdef TYPE_TAGGING_ENABLED
+    tag_region_map(tag_mappings),
+#endif
     sout_(nullptr),
     current_step(0),
     current_proc(0),
@@ -65,9 +66,6 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     log(false),
     remote_bitbang(NULL),
     debug_module(this, dm_config)
-#ifdef TYPE_TAGGING_ENABLED
-    , tag_debug_module(this, dm_config)
-#endif
 {
   signal(SIGINT, &handle_signal);
 
@@ -77,17 +75,6 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     bus.add_device(x.first, x.second);
 
   bus.add_device(DEBUG_START, &debug_module);
-
-#ifdef TYPE_TAGGING_ENABLED
-  for (auto& x : tag_mems)
-    tag_bus.add_device(x.first, x.second);
-
-  // TODO [TAG]: Consider fixing the logic in device.cc (bus_t::load/store)
-  // so we don't have to insert an extra debug module here.
-  // This could also be resolved by mapping tag memory onto regions of normal
-  // memory.
-  tag_bus.add_device(DEBUG_START, &tag_debug_module);
-#endif
 
   socketif = NULL;
 #ifdef HAVE_BOOST_ASIO
@@ -364,6 +351,8 @@ bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
+
+  if(this->tag_region_mappings.)
 
 #ifdef TYPE_TAGGING_ENABLED
   if(tag_mem) {
