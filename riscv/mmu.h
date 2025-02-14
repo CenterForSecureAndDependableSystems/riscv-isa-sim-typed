@@ -47,7 +47,7 @@ struct xlate_flags_t {
   const bool tag_access : 1 {false};
 
   bool is_special_access() const {
-    return forced_virt || hlvx || lr || ss_access || clean_inval;
+    return forced_virt || hlvx || lr || ss_access || clean_inval || tag_access;
   }
 };
 
@@ -381,6 +381,8 @@ public:
   {
     blocksz = size;
   }
+
+  reg_t translate_tag_addr(reg_t addr) const;
 
 private:
   simif_t* sim;

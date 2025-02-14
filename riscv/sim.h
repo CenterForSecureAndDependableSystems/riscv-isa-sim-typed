@@ -37,9 +37,6 @@ public:
         bool dtb_enabled, const char *dtb_file,
         bool socket_enabled,
         FILE *cmd_file // needed for command line option --cmd
-#ifdef TYPE_TAGGING_ENABLED
-        , std::vector<tag_mapping_cfg_t> tag_mappings
-#endif
   );
   ~sim_t();
 
@@ -63,6 +60,9 @@ public:
   processor_t* get_core(size_t i) { return procs.at(i); }
   abstract_interrupt_controller_t* get_intctrl() const { assert(plic.get()); return plic.get(); }
   virtual const cfg_t &get_cfg() const override { return *cfg; }
+#ifdef TYPE_TAGGING_ENABLED
+  virtual const tag_regions_t &get_tag_regions() const override { return tag_regions; }
+#endif
 
   virtual const std::map<size_t, processor_t*>& get_harts() const override { return harts; }
 
@@ -91,7 +91,7 @@ private:
   FILE *cmd_file; // pointer to debug command input file
 
 #ifdef TYPE_TAGGING_ENABLED
-  tag_regions_t tag_region_map;
+  tag_regions_t tag_regions;
 #endif
 
   socketif_t *socketif;

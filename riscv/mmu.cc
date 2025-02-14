@@ -1,5 +1,6 @@
 // See LICENSE for license details.
 
+#include "cfg.h"
 #include "config.h"
 #include "mmu.h"
 #include "arith.h"
@@ -72,6 +73,17 @@ reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
 
   bool virt = access_info.effective_virt;
   reg_t mode = (reg_t) access_info.effective_priv;
+
+  const tag_regions_t& tag_regions = sim->get_tag_regions();
+  if(tag_regions.intersects_tag_region(addr, len)
+     && !access_info.flags.tag_access
+    // TODO [TAG]: For debugging only, FETCH and LOAD 
+    // are allowed for tag regions, but should be 
+    // blocked in the future.
+     && type == STORE) 
+  {
+    throw_access_exception(virt, addr, type);
+  }
 
   reg_t paddr = walk(access_info) | (addr & (PGSIZE-1));
   if (!pmp_ok(paddr, len, access_info.flags.ss_access ? STORE : type, mode, access_info.flags.hlvx))
@@ -686,4 +698,8 @@ mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlat
     transformed_addr = is_physical_addr ? zext(addr, xlen - pmlen) : sext(addr, xlen - pmlen);
   }
   return {addr, transformed_addr, mode, virt, xlate_flags, type};
+}
+
+reg_t mmu_t::translate_tag_addr(reg_t addr) const {
+  return sim->get_tag_regions().get_tag_addr(addr);
 }
