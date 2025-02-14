@@ -25,6 +25,9 @@ public:
   virtual void proc_reset(unsigned id) = 0;
 
   virtual const cfg_t &get_cfg() const = 0;
+#ifdef TYPE_TAGGING_ENABLED
+  virtual const tag_regions_t &get_tag_regions() const = 0;
+#endif
   virtual const std::map<size_t, processor_t*>& get_harts() const = 0;
 
   virtual const char* get_symbol(uint64_t paddr) = 0;

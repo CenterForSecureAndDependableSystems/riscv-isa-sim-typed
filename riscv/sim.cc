@@ -45,9 +45,6 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
              bool dtb_enabled, const char *dtb_file,
              bool socket_enabled,
              FILE *cmd_file // needed for command line option --cmd
-#ifdef TYPE_TAGGING_ENABLED
-             , std::vector<tag_mapping_cfg_t> tag_mappings
-#endif
   )
   : htif_t(args),
     cfg(cfg),
@@ -56,7 +53,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     log_file(log_path),
     cmd_file(cmd_file),
 #ifdef TYPE_TAGGING_ENABLED
-    tag_region_map(tag_mappings),
+    tag_regions(cfg->tag_mem_mappings),
 #endif
     sout_(nullptr),
     current_step(0),
@@ -352,14 +349,6 @@ bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem)
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
 
-  if(this->tag_region_mappings.)
-
-#ifdef TYPE_TAGGING_ENABLED
-  if(tag_mem) {
-    return tag_bus.load(paddr, len, bytes);
-  }
-#endif
-
   return bus.load(paddr, len, bytes);
 }
 
@@ -367,12 +356,6 @@ bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_m
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
-
-#ifdef TYPE_TAGGING_ENABLED
-  if(tag_mem) {
-    return tag_bus.store(paddr, len, bytes);
-  }
-#endif
 
   return bus.store(paddr, len, bytes);
 }
@@ -426,14 +409,7 @@ char* sim_t::addr_to_mem(reg_t paddr, bool tag_mem) {
   if (!paddr_ok(paddr))
     return NULL;
 
-  bus_t* b = &this->bus;
-#ifdef TYPE_TAGGING_ENABLED
-  if(tag_mem) {
-    b = &this->tag_bus;
-  }
-#endif
-
-  auto desc = b->find_device(paddr);
+  auto desc = bus.find_device(paddr);
   if (auto mem = dynamic_cast<abstract_mem_t*>(desc.second))
     if (paddr - desc.first < mem->size())
       return mem->contents(paddr - desc.first);
