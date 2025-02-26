@@ -108,9 +108,9 @@ private:
   std::optional<std::function<void()>> next_interactive_action;
 
   // memory-mapped I/O routines
-  virtual char* addr_to_mem(reg_t paddr, bool tag_mem = false) override;
-  virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem = false) override;
-  virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_mem = false) override;
+  virtual char* addr_to_mem(reg_t paddr) override;
+  virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes) override;
+  virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes) override;
   void set_rom();
 
   virtual const char* get_symbol(uint64_t paddr) override;

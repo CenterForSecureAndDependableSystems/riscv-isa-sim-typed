@@ -344,7 +344,7 @@ static bool paddr_ok(reg_t addr)
   return true;
 }
 
-bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem)
+bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
@@ -352,7 +352,7 @@ bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem)
   return bus.load(paddr, len, bytes);
 }
 
-bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_mem)
+bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
@@ -405,7 +405,7 @@ void sim_t::set_rom()
   add_device(DEFAULT_RSTVEC, boot_rom);
 }
 
-char* sim_t::addr_to_mem(reg_t paddr, bool tag_mem) {
+char* sim_t::addr_to_mem(reg_t paddr) {
   if (!paddr_ok(paddr))
     return NULL;
 

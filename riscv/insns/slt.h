@@ -5,6 +5,11 @@ if(insn.rd() == 0 && p->get_tag_propagation_enabled()) {
 	typetag_t tag = RS2;
 	TAG_MMU_STORE(addr, typetag_t, tag);
 }
-else
+else {
 #endif
+
 	WRITE_RD(sreg_t(RS1) < sreg_t(RS2));
+
+#ifdef TYPE_TAGGING_ENABLED
+}
+#endif
