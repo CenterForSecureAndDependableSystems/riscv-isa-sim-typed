@@ -17,8 +17,9 @@
       STATE.XPR_tags.write(reg, wdata); \
     })
 
-  #define TAG_MMU_STORE(addr, type, tag) MMU.store<type>(TAG_ADDR(addr), tag, {.tag_access = true})
-  #define TAG_MMU_LOAD(addr, type) MMU.load<type>(TAG_ADDR(addr), {.tag_access = true})
+  // TODO [TAG]: Remove these
+  #define TAG_MMU_STORE(addr, type, tag) MMU.tag_store<type>(addr, tag)
+  #define TAG_MMU_LOAD(addr, type) MMU.tag_load<type>(addr)
 
   #define TAG_TRAP(exception_num, message, exception) \
     if(p->get_tag_trap_mode(exception_num) == TrapMode::TRAP_WARN) { \

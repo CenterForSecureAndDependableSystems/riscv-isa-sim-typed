@@ -63,9 +63,6 @@ processor_t::processor_t(const char* isa_str, const char* priv_str,
 
   register_base_instructions();
   mmu = new mmu_t(sim, cfg->endianness, this);
-#ifdef TYPE_TAGGING_ENABLED
-  tag_mmu = new mmu_t(sim, cfg->endianness, this, true);
-#endif
 
   disassembler = new disassembler_t(&isa);
   for (auto e : isa.get_extensions())
@@ -100,9 +97,6 @@ processor_t::~processor_t()
 
   delete mmu;
   delete disassembler;
-#ifdef TYPE_TAGGING_ENABLED
-  delete tag_mmu;
-#endif
 }
 
 static void bad_option_string(const char *option, const char *value,

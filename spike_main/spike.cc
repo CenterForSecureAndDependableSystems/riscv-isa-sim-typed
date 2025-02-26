@@ -475,7 +475,7 @@ int main(int argc, char** argv)
 #endif
   parser.option('p', 0, 1, [&](const char* s){nprocs = atoul_nonzero_safe(s);});
   parser.option('m', 0, 1, [&](const char* s){cfg.mem_layout = parse_mem_layout(s);});
-  parser.option(0, "tag-mem", 0, [&](const char *s){cfg.tag_mem_mappings = parse_tag_mappings(s);});
+  parser.option(0, "tag-mem", 1, [&](const char *s){cfg.tag_mem_mappings = parse_tag_mappings(s);});
   parser.option(0, "halted", 0, [&](const char UNUSED *s){halted = true;});
   parser.option(0, "rbb-port", 1, [&](const char* s){use_rbb = true; rbb_port = atoul_safe(s);});
   parser.option(0, "pc", 1, [&](const char* s){cfg.start_pc = strtoull(s, 0, 0);});
@@ -564,7 +564,6 @@ int main(int argc, char** argv)
 #ifdef TYPE_TAGGING_ENABLED
   std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems =
       make_tag_mems(cfg.tag_mem_mappings, cfg.mem_layout);
-  mems.insert(mems.end(), tag_mems.begin(), tag_mems.end());
 #endif
 
   if (kernel && check_file_exists(kernel)) {
@@ -594,6 +593,9 @@ int main(int argc, char** argv)
       }
     }
   }
+  
+  // Insert tag memory devices after kernel and initrd are set up
+  mems.insert(mems.end(), tag_mems.begin(), tag_mems.end());
 
   if (cfg.explicit_hartids) {
     if (nprocs.overridden() && (nprocs() != cfg.nprocs())) {

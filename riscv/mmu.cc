@@ -7,21 +7,16 @@
 #include "simif.h"
 #include "processor.h"
 #include "decode_macros.h"
+#include "trap.h"
 
 mmu_t::mmu_t(
   simif_t* sim, 
   endianness_t endianness,
   processor_t* proc
-#ifdef TYPE_TAGGING_ENABLED
-  , bool tag_mmu
-#endif
 )
  : sim(sim), proc(proc),
 #ifdef RISCV_ENABLE_DUAL_ENDIAN
   target_big_endian(endianness == endianness_big),
-#endif
-#ifdef TYPE_TAGGING_ENABLED
-  tag_mmu(tag_mmu),
 #endif
   check_triggers_fetch(false),
   check_triggers_load(false),
@@ -100,7 +95,7 @@ tlb_entry_t mmu_t::fetch_slow_path(reg_t vaddr)
   reg_t vpn = vaddr >> PGSHIFT;
   if (unlikely(tlb_insn_tag[vpn % TLB_ENTRIES] != (vpn | TLB_CHECK_TRIGGERS))) {
     reg_t paddr = translate(access_info, sizeof(fetch_temp));
-    if (auto host_addr = sim->addr_to_mem(paddr, tag_mmu)) {
+    if (auto host_addr = sim->addr_to_mem(paddr)) {
       result = refill_tlb(vaddr, paddr, host_addr, FETCH);
     } else {
       if (!mmio_fetch(paddr, sizeof fetch_temp, (uint8_t*)&fetch_temp))
@@ -157,7 +152,7 @@ bool mmu_t::mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes)
     return false;
 
 #ifdef TYPE_TAGGING_ENABLED
-  return sim->mmio_fetch(paddr, len, bytes, tag_mmu);
+  return sim->mmio_fetch(paddr, len, bytes);
 #else
   return sim->mmio_fetch(paddr, len, bytes);
 #endif
@@ -184,10 +179,10 @@ bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
 
 #ifdef TYPE_TAGGING_ENABLED
     if (type == STORE) {
-      return sim->mmio_store(paddr, len, bytes, this->tag_mmu);
+      return sim->mmio_store(paddr, len, bytes);
     }
     else {
-      return sim->mmio_load(paddr, len, bytes, this->tag_mmu);
+      return sim->mmio_load(paddr, len, bytes);
     }
 #else
     if (type == STORE) {
@@ -244,7 +239,7 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
     throw trap_load_access_fault(access_info.effective_virt, transformed_addr, 0, 0);
   }
 
-  if (auto host_addr = sim->addr_to_mem(paddr, tag_mmu)) {
+  if (auto host_addr = sim->addr_to_mem(paddr)) {
     memcpy(bytes, host_addr, len);
     if (tracer.interested_in_range(paddr, paddr + PGSIZE, LOAD))
       tracer.trace(paddr, len, LOAD);
@@ -306,7 +301,7 @@ void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_acces
   reg_t paddr = translate(access_info, len);
 
   if (actually_store) {
-    if (auto host_addr = sim->addr_to_mem(paddr, tag_mmu)) {
+    if (auto host_addr = sim->addr_to_mem(paddr)) {
       memcpy(host_addr, bytes, len);
       if (tracer.interested_in_range(paddr, paddr + PGSIZE, STORE))
         tracer.trace(paddr, len, STORE);
@@ -701,5 +696,6 @@ mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlat
 }
 
 reg_t mmu_t::translate_tag_addr(reg_t addr) const {
-  return sim->get_tag_regions().get_tag_addr(addr);
+  reg_t volatile tmp = sim->get_tag_regions().get_tag_addr(addr);
+  return tmp;
 }
