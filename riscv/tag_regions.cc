@@ -9,8 +9,6 @@ tag_regions_t::tag_regions_t(const std::vector<tag_mapping_cfg_t>& tag_mappings)
 
 reg_t tag_regions_t::get_tag_addr(reg_t mem_addr) const {
   auto it = mem_to_tag.upper_bound(mem_addr);
-  auto volatile tmp = it;
-  auto volatile tmp2 = mem_addr;
   if(mem_to_tag.empty() || it == mem_to_tag.begin())
 	throw tag_region_fault(mem_addr); // addr is before any mapped regions
   const tag_mapping_cfg_t& m = std::prev(it)->second;
