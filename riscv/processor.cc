@@ -838,8 +838,7 @@ void processor_t::trigger_updated(const std::vector<triggers::trigger_t *> &trig
 TrapMode processor_t::get_tag_trap_mode(tagexception_t e) const {
   auto itr = this->tag_trap_modes.find(e);
   if(itr != this->tag_trap_modes.end()) {
-    TrapMode tmp = itr->second;
-    return tmp;
+    return itr->second;
   }
   return TRAP_DISABLED;
 }

@@ -696,6 +696,5 @@ mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlat
 }
 
 reg_t mmu_t::translate_tag_addr(reg_t addr) const {
-  reg_t volatile tmp = sim->get_tag_regions().get_tag_addr(addr);
-  return tmp;
+  return sim->get_tag_regions().get_tag_addr(addr);
 }
