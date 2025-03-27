@@ -8,7 +8,6 @@ WRITE_RD(tmp);
 if(p->get_tag_propagation_enabled()) {
 	if(insn.rd() != 0) {
 		typetag_t tag = tt_set_obj_type(0, TT_OBJ_RETURN);
-		volatile reg_t tmp = insn.rd();
 		WRITE_REG_TAG(insn.rd(), tag);
 	}
 }

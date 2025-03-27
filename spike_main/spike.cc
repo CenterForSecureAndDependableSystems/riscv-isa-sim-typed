@@ -218,7 +218,7 @@ static mem_cfg_t create_mem_region(unsigned long long base, unsigned long long s
   return mem_cfg_t(base, size);
 }
 
-static tag_mapping_cfg_t create_mapped_tag_region(unsigned long long base, unsigned long long size, unsigned long long mapped_base)
+static tag_region_t create_mapped_tag_region(unsigned long long base, unsigned long long size, unsigned long long mapped_base)
 {
   mem_cfg_t mem = create_mem_region(base, size); // Create a normal memory region for tags
 
@@ -248,7 +248,7 @@ static tag_mapping_cfg_t create_mapped_tag_region(unsigned long long base, unsig
             base, mapped_base, mem.get_size(), size);
   }
 
-  return tag_mapping_cfg_t(mem.get_base(), mem.get_size(), mapped_base);
+  return tag_region_t(mem.get_base(), mem.get_size(), mapped_base);
 }
 
 static std::vector<mem_cfg_t> parse_mem_layout(const char* arg)
@@ -288,9 +288,9 @@ static std::vector<mem_cfg_t> parse_mem_layout(const char* arg)
   return merged_mem;
 }
 
-static std::vector<tag_mapping_cfg_t> parse_tag_mappings(const char* arg)
+static std::vector<tag_region_t> parse_tag_mappings(const char* arg)
 {
-  std::vector<tag_mapping_cfg_t> res;
+  std::vector<tag_region_t> res;
   char* p;
 
   // handle base/size/mapping tuples
@@ -329,7 +329,7 @@ static std::vector<std::pair<reg_t, abstract_mem_t*>> make_mems(const std::vecto
   return mems;
 }
 
-static std::vector<std::pair<reg_t, abstract_mem_t*>> make_tag_mems(const std::vector<tag_mapping_cfg_t> &mappings, const std::vector<mem_cfg_t> &layouts)
+static std::vector<std::pair<reg_t, abstract_mem_t*>> make_tag_mems(const std::vector<tag_region_t> &mappings, const std::vector<mem_cfg_t> &layouts)
 {
   std::vector<std::pair<reg_t, abstract_mem_t*>> mems;
   mems.reserve(mappings.size());
@@ -343,22 +343,22 @@ static std::vector<std::pair<reg_t, abstract_mem_t*>> make_tag_mems(const std::v
     if(it == layouts.end()) {
       fprintf(stderr, "Tag region (0x%lX:0x%lX) maps onto 0x%lX, but no memory "
                       "region with that base exists.\n", 
-        cfg.get_base(), cfg.get_size(), cfg.get_mapped_base());
+        cfg.get_tag_base(), cfg.get_size(), cfg.get_mapped_base());
       exit(EXIT_FAILURE);
     }
     if(it->get_size() < cfg.get_size()) {
       fprintf(stderr, "Tag region (0x%lX:0x%lX) must not have a greater size than"
                       "the region which it maps onto (0x%lX:0x%lX).", 
-        cfg.get_base(), cfg.get_size(), it->get_base(), it->get_size());
+        cfg.get_tag_base(), cfg.get_size(), it->get_base(), it->get_size());
       exit(EXIT_FAILURE);
     }
     if(it->get_size() > cfg.get_size()) {
       fprintf(stderr, "Warning: Tag region (0x%lX:0x%lX) is smaller than the region "
                       "it is mapped to (0x%lX:0x%lX).", 
-        cfg.get_base(), cfg.get_size(), it->get_base(), it->get_size());
+        cfg.get_tag_base(), cfg.get_size(), it->get_base(), it->get_size());
     }
 
-    mems.push_back(std::make_pair(cfg.get_base(), new mem_t(cfg.get_size())));
+    mems.push_back(std::make_pair(cfg.get_tag_base(), new mem_t(cfg.get_size())));
   }
   return mems;
 }
