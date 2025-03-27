@@ -90,10 +90,6 @@ private:
 
   FILE *cmd_file; // pointer to debug command input file
 
-#ifdef TYPE_TAGGING_ENABLED
-  tag_regions_t tag_regions;
-#endif
-
   socketif_t *socketif;
   std::ostream sout_; // used for socket and terminal interface
 

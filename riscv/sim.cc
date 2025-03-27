@@ -1,7 +1,9 @@
 // See LICENSE for license details.
 
+#include "cfg.h"
 #include "config.h"
 #include "sim.h"
+#include "elfloader.h"
 #include "mmu.h"
 #include "dts.h"
 #include "remote_bitbang.h"
@@ -9,6 +11,7 @@
 #include "platform.h"
 #include "libfdt.h"
 #include "socketif.h"
+#include "tag_regions.h"
 #include <fstream>
 #include <map>
 #include <iostream>
@@ -17,9 +20,12 @@
 #include <cstdlib>
 #include <cassert>
 #include <signal.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+
+#define TYPE_TAGGING_DEBUG
 
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
@@ -52,9 +58,6 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     dtb_enabled(dtb_enabled),
     log_file(log_path),
     cmd_file(cmd_file),
-#ifdef TYPE_TAGGING_ENABLED
-    tag_regions(cfg->tag_mem_mappings),
-#endif
     sout_(nullptr),
     current_step(0),
     current_proc(0),
@@ -67,6 +70,12 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
   signal(SIGINT, &handle_signal);
 
   sout_.rdbuf(std::cerr.rdbuf()); // debug output goes to stderr by default
+
+#ifdef TYPE_TAGGING_ENABLED
+  for(const tag_region_t& region : cfg->tag_mem_mappings) {
+    tag_regions.map_region(region);
+  }
+#endif
 
   for (auto& x : mems)
     bus.add_device(x.first, x.second);
