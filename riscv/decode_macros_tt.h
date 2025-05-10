@@ -17,7 +17,7 @@
       STATE.XPR_tags.write(reg, wdata); \
     })
 
-  // TODO [TAG]: Remove these
+  // TODO [TAG]: Remove these, they're redundant now
   #define TAG_MMU_STORE(addr, type, tag) MMU.tag_store<type>(addr, tag)
   #define TAG_MMU_LOAD(addr, type) MMU.tag_load<type>(addr)
 
