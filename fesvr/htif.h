@@ -3,11 +3,16 @@
 #ifndef __HTIF_H
 #define __HTIF_H
 
+#include "config.h"
+#include "cfg.h"
+#include "elfloader.h"
 #include "memif.h"
 #include "syscall.h"
 #include "device.h"
 #include "byteorder.h"
+#include "tag_regions.h"
 #include "../riscv/platform.h"
+#include <stdint.h>
 #include <string.h>
 #include <map>
 #include <vector>
@@ -59,7 +64,7 @@ class htif_t : public chunked_memif_t
   virtual size_t chunk_align() = 0;
   virtual size_t chunk_max_size() = 0;
 
-  virtual std::map<std::string, uint64_t> load_payload(const std::string& payload, reg_t* entry,
+  virtual ElfHeaders64 load_payload(const std::string& payload, reg_t* entry,
                                                        reg_t load_addr);
   virtual void load_program();
   virtual void idle() {}
@@ -75,11 +80,22 @@ class htif_t : public chunked_memif_t
 
   // Given an address, return symbol from addr2symbol map
   const char* get_symbol(uint64_t addr);
+  ElfSection64 const* get_section(std::string name) const;
+  ElfHeaders64 const& get_elf_headers() const;
+
+ protected:
+#ifdef TYPE_TAGGING_ENABLED
+  tag_regions_t tag_regions;
+#endif
 
  private:
   void parse_arguments(int argc, char ** argv);
   void register_devices();
   void usage(const char * program_name);
+#ifdef TYPE_TAGGING_ENABLED
+  void map_elf_tag_regions();
+#endif
+
   unsigned int expected_xlen = 0;
   const reg_t load_offset = DRAM_BASE;
   memif_t mem;
@@ -104,6 +120,7 @@ class htif_t : public chunked_memif_t
 
   std::vector<std::string> symbol_elfs;
   std::map<uint64_t, std::string> addr2symbol;
+  ElfHeaders64 elf_headers;
 
   friend class memif_t;
   friend class syscall_t;

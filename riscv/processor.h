@@ -275,7 +275,6 @@ public:
   mmu_t* get_mmu() { return mmu; }
 
 #ifdef TYPE_TAGGING_ENABLED
-  mmu_t* get_tag_mmu() { return tag_mmu; }
   bool get_tag_checking_enabled() const { return tag_checking; }
   bool get_tag_propagation_enabled() const { return tag_propagation; }
   void set_tag_checking(bool enabled) { tag_checking = enabled; }
@@ -397,7 +396,6 @@ private:
   simif_t* sim;
   mmu_t* mmu; // main memory is always accessed via the mmu
 #ifdef TYPE_TAGGING_ENABLED
-  mmu_t* tag_mmu;
   bool tag_checking = false;
   bool tag_propagation = false;
   std::unordered_map<tagexception_t, TrapMode> tag_trap_modes;

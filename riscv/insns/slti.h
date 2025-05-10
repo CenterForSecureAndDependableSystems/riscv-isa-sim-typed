@@ -27,6 +27,12 @@ if(insn.rd() == 0) {
 		break;
 	}
 }
+else {
 #endif
 
-WRITE_RD(sreg_t(RS1) < sreg_t(insn.i_imm()));
+	WRITE_RD(sreg_t(RS1) < sreg_t(insn.i_imm()));
+
+#ifdef TYPE_TAGGING_ENABLED
+}
+#endif
+

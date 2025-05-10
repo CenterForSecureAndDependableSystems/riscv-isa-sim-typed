@@ -329,3 +329,23 @@ $4 = 0
 (gdb) print text
 ...
 ```
+
+Type Tagging (Experimental)
+-------------
+Type tags are metadata applied to each byte in memory.
+Tags are stored in separate regions of memory which are mapped on top of normal memory regions created with `-m`.
+A region of tag memory can be created and mapped using the `--tag-mem` flag:
+
+```bash
+# -m0x80000000:0x10000   
+# Create a region of memory with base address 0x80000000 and size 0x10000
+#
+# --tag-mem 0x90000000:0x10000:0x80000000
+# Create a region of tag memory at 0x90000000 of size 0x10000 mapped to 0x80000000.
+$ spike -m0x80000000:0x10000 --tag-mem 0x90000000:0x10000:0x80000000 prog
+```
+
+Tag regions must completely overlap with a normal region (they can be smaller, 
+but can't go past either boundary). Address space with no tag region mapped to it
+will ignore tag operations and should report back `0x0` if an instruction tries
+to load a tag.

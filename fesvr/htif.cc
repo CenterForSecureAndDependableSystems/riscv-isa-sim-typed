@@ -1,15 +1,18 @@
 // See LICENSE for license details.
 
+#include "cfg.h"
 #include "config.h"
 #include "htif.h"
 #include "rfb.h"
 #include "elfloader.h"
 #include "platform.h"
 #include "byteorder.h"
+#include "tag_regions.h"
 #include "trap.h"
 #include "../riscv/common.h"
 #include <algorithm>
 #include <assert.h>
+#include <stdint.h>
 #include <vector>
 #include <queue>
 #include <iostream>
@@ -87,6 +90,7 @@ void htif_t::start()
   if (!targs.empty() && targs[0] != "none") {
     try {
       load_program();
+      this->tag_regions = tag_regions_t::find_elf_tag_regions(this->elf_headers.sections, this->tag_regions);
     } catch (const incompat_xlen & err) {
       fprintf(stderr, "Error: cannot execute %d-bit program on RV%d hart\n", err.actual_xlen, err.expected_xlen);
       exit(1);
@@ -103,7 +107,7 @@ static void bad_address(const std::string& situation, reg_t addr)
   exit(-1);
 }
 
-std::map<std::string, uint64_t> htif_t::load_payload(const std::string& payload, reg_t* entry, reg_t load_offset)
+ElfHeaders64 htif_t::load_payload(const std::string& payload, reg_t* entry, reg_t load_offset)
 {
   std::string path;
   if (access(payload.c_str(), F_OK) == 0)
@@ -152,19 +156,20 @@ std::map<std::string, uint64_t> htif_t::load_payload(const std::string& payload,
 
 void htif_t::load_program()
 {
-  std::map<std::string, uint64_t> symbols = load_payload(targs[0], &entry, load_offset);
+  ElfHeaders64 headers = load_payload(targs[0], &entry, load_offset);
+  auto& symbols = headers.symbols;
 
   if (symbols.count("tohost") && symbols.count("fromhost")) {
-    tohost_addr = symbols["tohost"];
-    fromhost_addr = symbols["fromhost"];
+    tohost_addr = symbols["tohost"].value;
+    fromhost_addr = symbols["fromhost"].value;
   } else {
     fprintf(stderr, "warning: tohost and fromhost symbols not in ELF; can't communicate with target\n");
   }
 
   // detect torture tests so we can print the memory signature at the end
   if (symbols.count("begin_signature") && symbols.count("end_signature")) {
-    sig_addr = symbols["begin_signature"];
-    sig_len = symbols["end_signature"] - sig_addr;
+    sig_addr = symbols["begin_signature"].value;
+    sig_len = symbols["end_signature"].value - sig_addr;
   }
 
   for (auto payload : payloads) {
@@ -183,16 +188,16 @@ void htif_t::load_program()
 
   reg_t nop_entry;
   for (auto &s : symbol_elfs) {
-    std::map<std::string, uint64_t> other_symbols = load_elf(s.c_str(), &nop_memif, &nop_entry,
-                                                             expected_xlen);
-    symbols.merge(other_symbols);
+    ElfHeaders64 other_elfs = load_elf(s.c_str(), &nop_memif, &nop_entry, expected_xlen);
+    symbols.merge(other_elfs.symbols);
   }
 
   for (auto i : symbols) {
-    auto it = addr2symbol.find(i.second);
+    auto it = addr2symbol.find(i.second.value);
     if ( it == addr2symbol.end())
-      addr2symbol[i.second] = i.first;
+      addr2symbol[i.second.value] = i.first;
   }
+  this->elf_headers = headers;
 
   return;
 }
@@ -205,6 +210,25 @@ const char* htif_t::get_symbol(uint64_t addr)
       return nullptr;
 
   return it->second.c_str();
+}
+
+ElfSection64 const* htif_t::get_section(std::string name) const
+{
+  auto it = std::find_if(
+    elf_headers.sections.begin(), 
+    elf_headers.sections.end(),
+    [name](ElfSection64 const& sec) { return sec.name == name; }
+  );
+
+  if(it == elf_headers.sections.end()) {
+    return nullptr;
+  }
+
+  return &*it;
+}
+
+ElfHeaders64 const& htif_t::get_elf_headers() const {
+  return elf_headers;
 }
 
 void htif_t::stop()
