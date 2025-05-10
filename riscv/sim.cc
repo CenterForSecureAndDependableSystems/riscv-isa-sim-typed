@@ -1,7 +1,9 @@
 // See LICENSE for license details.
 
+#include "cfg.h"
 #include "config.h"
 #include "sim.h"
+#include "elfloader.h"
 #include "mmu.h"
 #include "dts.h"
 #include "remote_bitbang.h"
@@ -9,6 +11,7 @@
 #include "platform.h"
 #include "libfdt.h"
 #include "socketif.h"
+#include "tag_regions.h"
 #include <fstream>
 #include <map>
 #include <iostream>
@@ -17,9 +20,12 @@
 #include <cstdlib>
 #include <cassert>
 #include <signal.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+
+#define TYPE_TAGGING_DEBUG
 
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
@@ -38,24 +44,19 @@ extern device_factory_t* ns16550_factory;
 
 sim_t::sim_t(const cfg_t *cfg, bool halted,
              std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
-#ifdef TYPE_TAGGING_ENABLED
-             std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems,
-#endif
              const std::vector<device_factory_sargs_t>& plugin_device_factories,
              const std::vector<std::string>& args,
              const debug_module_config_t &dm_config,
              const char *log_path,
              bool dtb_enabled, const char *dtb_file,
              bool socket_enabled,
-             FILE *cmd_file) // needed for command line option --cmd
+             FILE *cmd_file // needed for command line option --cmd
+  )
   : htif_t(args),
     cfg(cfg),
     mems(mems),
     dtb_enabled(dtb_enabled),
     log_file(log_path),
-#ifdef TYPE_TAGGING_ENABLED
-    tag_mems(tag_mems),
-#endif
     cmd_file(cmd_file),
     sout_(nullptr),
     current_step(0),
@@ -65,29 +66,21 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     log(false),
     remote_bitbang(NULL),
     debug_module(this, dm_config)
-#ifdef TYPE_TAGGING_ENABLED
-    , tag_debug_module(this, dm_config)
-#endif
 {
   signal(SIGINT, &handle_signal);
 
   sout_.rdbuf(std::cerr.rdbuf()); // debug output goes to stderr by default
 
+#ifdef TYPE_TAGGING_ENABLED
+  for(const tag_region_t& region : cfg->tag_mem_mappings) {
+    tag_regions.map_region(region);
+  }
+#endif
+
   for (auto& x : mems)
     bus.add_device(x.first, x.second);
 
   bus.add_device(DEBUG_START, &debug_module);
-
-#ifdef TYPE_TAGGING_ENABLED
-  for (auto& x : tag_mems)
-    tag_bus.add_device(x.first, x.second);
-
-  // TODO [TAG]: Consider fixing the logic in device.cc (bus_t::load/store)
-  // so we don't have to insert an extra debug module here.
-  // This could also be resolved by mapping tag memory onto regions of normal
-  // memory.
-  tag_bus.add_device(DEBUG_START, &tag_debug_module);
-#endif
 
   socketif = NULL;
 #ifdef HAVE_BOOST_ASIO
@@ -360,30 +353,18 @@ static bool paddr_ok(reg_t addr)
   return true;
 }
 
-bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem)
+bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
-
-#ifdef TYPE_TAGGING_ENABLED
-  if(tag_mem) {
-    return tag_bus.load(paddr, len, bytes);
-  }
-#endif
 
   return bus.load(paddr, len, bytes);
 }
 
-bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_mem)
+bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
 {
   if (paddr + len < paddr || !paddr_ok(paddr + len - 1))
     return false;
-
-#ifdef TYPE_TAGGING_ENABLED
-  if(tag_mem) {
-    return tag_bus.store(paddr, len, bytes);
-  }
-#endif
 
   return bus.store(paddr, len, bytes);
 }
@@ -433,18 +414,11 @@ void sim_t::set_rom()
   add_device(DEFAULT_RSTVEC, boot_rom);
 }
 
-char* sim_t::addr_to_mem(reg_t paddr, bool tag_mem) {
+char* sim_t::addr_to_mem(reg_t paddr) {
   if (!paddr_ok(paddr))
     return NULL;
 
-  bus_t* b = &this->bus;
-#ifdef TYPE_TAGGING_ENABLED
-  if(tag_mem) {
-    b = &this->tag_bus;
-  }
-#endif
-
-  auto desc = b->find_device(paddr);
+  auto desc = bus.find_device(paddr);
   if (auto mem = dynamic_cast<abstract_mem_t*>(desc.second))
     if (paddr - desc.first < mem->size())
       return mem->contents(paddr - desc.first);

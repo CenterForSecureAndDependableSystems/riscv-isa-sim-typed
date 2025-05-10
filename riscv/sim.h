@@ -31,15 +31,13 @@ class sim_t : public htif_t, public simif_t
 public:
   sim_t(const cfg_t *cfg, bool halted,
         std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
-#ifdef TYPE_TAGGING_ENABLED
-        std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems,
-#endif
         const std::vector<device_factory_sargs_t>& plugin_device_factories,
         const std::vector<std::string>& args,
         const debug_module_config_t &dm_config, const char *log_path,
         bool dtb_enabled, const char *dtb_file,
         bool socket_enabled,
-        FILE *cmd_file); // needed for command line option --cmd
+        FILE *cmd_file // needed for command line option --cmd
+  );
   ~sim_t();
 
   // run the simulation to completion
@@ -62,6 +60,9 @@ public:
   processor_t* get_core(size_t i) { return procs.at(i); }
   abstract_interrupt_controller_t* get_intctrl() const { assert(plic.get()); return plic.get(); }
   virtual const cfg_t &get_cfg() const override { return *cfg; }
+#ifdef TYPE_TAGGING_ENABLED
+  virtual const tag_regions_t &get_tag_regions() const override { return tag_regions; }
+#endif
 
   virtual const std::map<size_t, processor_t*>& get_harts() const override { return harts; }
 
@@ -87,11 +88,6 @@ private:
   bus_t bus;
   log_file_t log_file;
 
-#ifdef TYPE_TAGGING_ENABLED
-  std::vector<std::pair<reg_t, abstract_mem_t*>> tag_mems;
-  bus_t tag_bus;
-#endif
-
   FILE *cmd_file; // pointer to debug command input file
 
   socketif_t *socketif;
@@ -108,9 +104,9 @@ private:
   std::optional<std::function<void()>> next_interactive_action;
 
   // memory-mapped I/O routines
-  virtual char* addr_to_mem(reg_t paddr, bool tag_mem = false) override;
-  virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes, bool tag_mem = false) override;
-  virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, bool tag_mem = false) override;
+  virtual char* addr_to_mem(reg_t paddr) override;
+  virtual bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes) override;
+  virtual bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes) override;
   void set_rom();
 
   virtual const char* get_symbol(uint64_t paddr) override;
@@ -164,9 +160,6 @@ public:
   // enumerate processors, which segfaults if procs hasn't been initialized
   // yet.
   debug_module_t debug_module;
-#ifdef TYPE_TAGGING_ENABLED
-  debug_module_t tag_debug_module;
-#endif
 };
 
 extern volatile bool ctrlc_pressed;

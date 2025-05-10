@@ -12,6 +12,20 @@ mem_cfg_t::mem_cfg_t(reg_t base, reg_t size) : base(base), size(size)
   assert(mem_cfg_t::check_if_supported(base, size));
 }
 
+tag_region_t::tag_region_t(reg_t tag_base, reg_t size, reg_t mapped_base) 
+  : tag_base(tag_base), mapped_base(mapped_base), size(size)
+{
+  reg_t mapped_end = mapped_base + size;
+  reg_t tag_end = tag_base + size;
+
+  assert(size > 0);
+  if(tag_base >= mapped_base)
+    assert(tag_base >= mapped_end);
+
+  if(tag_base < mapped_base)
+    assert(tag_end <= mapped_base);
+}
+
 bool mem_cfg_t::check_if_supported(reg_t base, reg_t size)
 {
   // The truth of these conditions should be ensured by whatever is creating

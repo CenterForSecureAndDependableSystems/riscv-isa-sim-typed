@@ -4,6 +4,7 @@
 #define _RISCV_MMU_H
 
 #include "decode.h"
+#include "tag_regions.h"
 #include "trap.h"
 #include "common.h"
 #include "simif.h"
@@ -44,9 +45,10 @@ struct xlate_flags_t {
   const bool lr : 1 {false};
   const bool ss_access : 1 {false};
   const bool clean_inval : 1 {false};
+  const bool tag_access : 1 {false};
 
   bool is_special_access() const {
-    return forced_virt || hlvx || lr || ss_access || clean_inval;
+    return forced_virt || hlvx || lr || ss_access || clean_inval || tag_access;
   }
 };
 
@@ -77,11 +79,7 @@ private:
   mem_access_info_t generate_access_info(reg_t addr, access_type type, xlate_flags_t xlate_flags);
 
 public:
-  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc
-#ifdef TYPE_TAGGING_ENABLED
-    , bool tag_mmu = false
-#endif
-  );
+  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc);
   ~mmu_t();
 
   template<typename T>
@@ -381,6 +379,37 @@ public:
     blocksz = size;
   }
 
+  reg_t translate_tag_addr(reg_t addr) const;
+
+  template<typename T>
+  inline void tag_store(reg_t addr, typetag_t tag) {
+    auto xlate_flags = xlate_flags_t {.tag_access = true};
+    auto access_info = generate_access_info(addr, STORE, xlate_flags);
+
+    try {
+      reg_t tag_addr = translate_tag_addr(access_info.transformed_vaddr);
+      this->store<T>(tag_addr, tag, xlate_flags);
+    }
+    catch(tag_region_fault&) {
+      // Ignore stores with no tag regions
+    }
+  }
+
+  template<typename T>
+  inline T tag_load(reg_t addr) {
+    auto xlate_flags = xlate_flags_t {.tag_access = true};
+    auto access_info = generate_access_info(addr, LOAD, xlate_flags);
+
+    try {
+      reg_t tag_addr = translate_tag_addr(access_info.transformed_vaddr);
+      return this->load<T>(tag_addr, xlate_flags);
+    }
+    catch(tag_region_fault&) {
+      // Ignore loads with no tag regions
+      return T(0);
+    }
+  }
+
 private:
   simif_t* sim;
   processor_t* proc;
@@ -388,10 +417,6 @@ private:
   reg_t load_reservation_address;
   uint16_t fetch_temp;
   reg_t blocksz;
-
-#ifdef TYPE_TAGGING_ENABLED
-  bool tag_mmu = false;
-#endif
 
   // implement an instruction cache for simulator performance
   icache_entry_t icache[ICACHE_ENTRIES];
