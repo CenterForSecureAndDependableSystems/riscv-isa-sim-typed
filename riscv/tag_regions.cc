@@ -26,8 +26,11 @@ void tag_regions_t::map_region(tag_region_t const& cfg, bool remap) {
   // We are able to 'move' a mapped region to a different tag region and vice versa
   // (like we might when loading an ELF file on top of an already mapped region
   // for some subregions within it).
+
+  // This is a lambda so we can make adjustments for both the new mapped region,
+  // and the new tag region.
   auto remap_regions = [this, remap](reg_t base, reg_t len) {
-    reg_t end = base + len;
+    reg_t end = base + len; // The end of the new region
 
     auto regions = intersected_regions(mapped_regions, base, len);
     if(!regions.empty()) {
@@ -51,9 +54,9 @@ void tag_regions_t::map_region(tag_region_t const& cfg, bool remap) {
         reg_t diff = end - last.get_mapped_base();
 
         tag_region_t new_region(
-          last.get_tag_base() + diff,
+          last.get_tag_base() + diff, // Shift the tag base up, creates some dead space 
           last.get_size() - diff,
-          end
+          end // Set the mapped base to the end of the new region
         );
         erase_region(last);
         insert_region(new_region);
@@ -184,11 +187,7 @@ tag_regions_t tag_regions_t::find_elf_tag_regions(
 {
   for(ElfSection64 const& section : sections) {
     // If the section is a custom tag region...
-    // This section type is used for MIPS_AUXSYM,
-    // I'm hijacking it for now as the library I'm using to
-    // write ELFs can only use well defined types for now.
-    // TODO TAG: Change this to an appropriate value.
-    if(section.type == 0x70000016) {
+    if(section.type == 0x700000000) {
       uint64_t mapped_section_idx = section.link;
       if(mapped_section_idx > sections.size()) {
         throw tag_region_definition_fault("Mapped section referenced in tag section header does not exist");
